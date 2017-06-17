@@ -56,32 +56,30 @@
 
 	var Autocomplete = {
 		init: function init(api) {
-			this.form = document.createElement('form');
-			var sel = document.createElement('select');
+			var ul = document.createElement('ul');
 			var txt = document.createElement('input');
 			txt.type = 'text';
 			txt.autofocus = true;
 			txt.placeholder = 'Search states';
-			txt.addEventListener('input', updateSel);
-			sel.addEventListener('click', handleUi);
-			this.form.addEventListener('keydown', handleUi);
-			this.form.appendChild(sel);
+			ul.index = -1;
+			ul.addEventListener('click', handleUi);
+			this.form = document.createElement('form');
+			this.form.addEventListener('keyup', handleUi);
 			this.form.appendChild(txt);
+			this.form.appendChild(ul);
 
 			function handleUi(e) {
 				switch (e.keyCode) {
 					case 40:
 						// Arrow Down
-						console.log(sel.selectedIndex);
-						sel.selectedIndex = sel.size === 1 ? 0 : sel.selectedIndex + 1;
-						console.log(sel.selectedIndex);
+						updateFocus(1);
 						break;
 					case 38:
 						// Arrow Up
-						sel.selectedIndex -= 1;
+						updateFocus(-1);
 						break;
 					case 8:
-						// backspace
+						// Backspace
 						txt.bksp = true;
 						return;
 						break;
@@ -91,32 +89,44 @@
 						hideSel(true);
 						break;
 					default:
+						updateList();
 						return;
 				}
-				txt.value = sel.value || txt.startVal;
 				e.preventDefault();
 			}
 
-			function updateSel() {
+			function updateFocus(num) {
+				ul.index = Math.min(Math.max(ul.index + num, -1), ul.children.length - 1);
+				if (ul.index === -1) {
+					txt.value = txt.startVal;
+					txt.focus();
+				} else {
+					txt.value = ul.children[ul.index].textContent;
+					ul.children[ul.index].focus();
+				}
+			}
+
+			function updateList() {
 				txt.startVal = txt.value;
-				while (sel.lastChild) {
-					sel.lastChild.remove();
+				while (ul.lastChild) {
+					ul.lastChild.remove();
 				}
 				if (txt.value.length < 2) return;
 				xhrReq('GET', api + '?term=' + txt.value).then(function (obj) {
-					obj.data.forEach(function (item) {
-						var opt = document.createElement('option');
-						opt.value = opt.textContent = item.name;
-						sel.appendChild(opt);
+					obj.data.forEach(function (item, i) {
+						var li = document.createElement('li');
+						li.textContent = item.name;
+						li.setAttribute('tabindex', i + 1);
+						ul.appendChild(li);
 					});
-					sel.size = Math.min(5, obj.count);
+					ul.size = Math.min(5, obj.count);
 
-					if (sel.size === 1 && !txt.bksp) {
-						txt.value = sel.firstChild.value;
+					if (ul.size === 1 && !txt.bksp) {
+						txt.value = ul.firstChild.textContent;
 						hideSel(true);
 					} else {
 						delete txt.bksp;
-						sel.selectedIndex = -1;
+						ul.selectedIndex = -1;
 						hideSel(false);
 					}
 				}, function (err) {
@@ -126,9 +136,9 @@
 
 			function hideSel(hide) {
 				if (hide) {
-					sel.setAttribute('hidden', true);
+					ul.setAttribute('hidden', true);
 				} else {
-					sel.removeAttribute('hidden');
+					ul.removeAttribute('hidden');
 				}
 			}
 
@@ -193,7 +203,7 @@
 
 
 	// module
-	exports.push([module.id, "/* http://meyerweb.com/eric/tools/css/reset/\n   v2.0 | 20110126\n   License: none (public domain)\n*/\nhtml, body, div, span, applet, object, iframe,\nh1, h2, h3, h4, h5, h6, p, blockquote, pre,\na, abbr, acronym, address, big, cite, code,\ndel, dfn, em, img, ins, kbd, q, s, samp,\nsmall, strike, strong, sub, sup, tt, var,\nb, u, i, center,\ndl, dt, dd, ol, ul, li,\nfieldset, form, label, legend,\ntable, caption, tbody, tfoot, thead, tr, th, td,\narticle, aside, canvas, details, embed,\nfigure, figcaption, footer, header, hgroup,\nmenu, nav, output, ruby, section, summary,\ntime, mark, audio, video {\n  margin: 0;\n  padding: 0;\n  border: 0;\n  font-size: 100%;\n  font: inherit;\n  vertical-align: baseline; }\n\n/* HTML5 display-role reset for older browsers */\narticle, aside, details, figcaption, figure,\nfooter, header, hgroup, menu, nav, section {\n  display: block; }\n\nbody {\n  line-height: 1; }\n\nol, ul {\n  list-style: none; }\n\nblockquote, q {\n  quotes: none; }\n\nblockquote:before, blockquote:after,\nq:before, q:after {\n  content: '';\n  content: none; }\n\ntable {\n  border-collapse: collapse;\n  border-spacing: 0; }\n\nbody,\nhtml {\n  font: 20px/100% \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  text-align: center; }\n\nform {\n  position: relative;\n  display: inline-block;\n  min-width: 400px;\n  margin: 20px auto; }\n\ninput,\nselect {\n  width: 100%;\n  font: inherit;\n  border: 1px solid gray;\n  box-sizing: border-box;\n  outline: none;\n  padding: 4px; }\n\ninput[type=text] {\n  position: absolute;\n  top: 0;\n  left: 0;\n  border-top-left-radius: 5px;\n  border-top-right-radius: 5px; }\n\nselect {\n  margin-top: 32px; }\n", ""]);
+	exports.push([module.id, "/* http://meyerweb.com/eric/tools/css/reset/\n   v2.0 | 20110126\n   License: none (public domain)\n*/\nhtml, body, div, span, applet, object, iframe,\nh1, h2, h3, h4, h5, h6, p, blockquote, pre,\na, abbr, acronym, address, big, cite, code,\ndel, dfn, em, img, ins, kbd, q, s, samp,\nsmall, strike, strong, sub, sup, tt, var,\nb, u, i, center,\ndl, dt, dd, ol, ul, li,\nfieldset, form, label, legend,\ntable, caption, tbody, tfoot, thead, tr, th, td,\narticle, aside, canvas, details, embed,\nfigure, figcaption, footer, header, hgroup,\nmenu, nav, output, ruby, section, summary,\ntime, mark, audio, video {\n  margin: 0;\n  padding: 0;\n  border: 0;\n  font-size: 100%;\n  font: inherit;\n  vertical-align: baseline; }\n\n/* HTML5 display-role reset for older browsers */\narticle, aside, details, figcaption, figure,\nfooter, header, hgroup, menu, nav, section {\n  display: block; }\n\nbody {\n  line-height: 1; }\n\nol, ul {\n  list-style: none; }\n\nblockquote, q {\n  quotes: none; }\n\nblockquote:before, blockquote:after,\nq:before, q:after {\n  content: '';\n  content: none; }\n\ntable {\n  border-collapse: collapse;\n  border-spacing: 0; }\n\n* {\n  outline: none; }\n\nbody,\nhtml {\n  font: 20px/100% \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  background: #f8f8f8; }\n\nform {\n  width: 400px;\n  margin: 20px auto; }\n\ninput[type=text],\nul {\n  position: relative;\n  display: block;\n  font: inherit;\n  line-height: 24px;\n  padding: 4px;\n  background: white;\n  border: 1px solid gray;\n  border-radius: 5px;\n  box-shadow: 0 0 4px #999999; }\n\ninput[type=text] {\n  width: 100%;\n  z-index: 1; }\n\nul {\n  margin-top: -4px;\n  border-top-right-radius: 0;\n  border-top-left-radius: 0;\n  z-index: 0; }\n\nli {\n  padding: 2px; }\n\nli:focus {\n  background: skyblue; }\n", ""]);
 
 	// exports
 
