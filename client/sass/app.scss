@@ -1,36 +1,49 @@
 @import "reset";
 
+*{
+	outline: none;
+}
+
 body,
 html {
 	font: 20px/100% "Helvetica Neue", Helvetica, Arial, sans-serif;
-	text-align: center;
+	background: #f8f8f8;
 }
 
 form {
-	position: relative;
-	display: inline-block;
-	min-width: 400px;
+	width: 400px;
 	margin: 20px auto;
 }
 
-input,
-select {
-	width: 100%;
+input[type=text],
+ul {
+	position: relative;
+	display: block;
 	font: inherit;
-	border: 1px solid gray;
-	box-sizing: border-box;
-	outline: none;
+	line-height: 24px;
 	padding: 4px;
+	background: white;
+	border: 1px solid gray;
+	border-radius: 5px;
+	box-shadow: 0 0 4px #999999;
 }
 
 input[type=text] {
-	position: absolute;
-	top: 0;
-	left: 0;
-	border-top-left-radius: 5px;
-	border-top-right-radius: 5px;
+	width: 100%;
+	z-index: 1;
 }
 
-select{
-    margin-top: 32px;
+ul{
+    margin-top: -4px;
+		border-top-right-radius: 0;
+		border-top-left-radius: 0;
+    z-index: 0;
+}
+
+li{
+	padding: 2px;
+}
+
+li:focus{
+	background: skyblue;
 }

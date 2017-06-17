@@ -6,29 +6,27 @@ import appStyles from '../sass/app.scss';
 
 const Autocomplete = {
 	init(api) {
-		this.form = document.createElement('form');
-		const sel = document.createElement('select');
+		const ul = document.createElement('ul');
 		const txt = document.createElement('input');
 		txt.type = 'text';
 		txt.autofocus = true;
 		txt.placeholder = 'Search states';
-		txt.addEventListener('input', updateSel);
-		sel.addEventListener('click', handleUi);
-		this.form.addEventListener('keydown', handleUi);
-		this.form.appendChild(sel);
+		ul.index = -1;
+		ul.addEventListener('click', handleUi);
+		this.form = document.createElement('form');
+		this.form.addEventListener('keyup', handleUi);
 		this.form.appendChild(txt);
+		this.form.appendChild(ul);
 
 		function handleUi(e) {
 			switch (e.keyCode) {
 				case 40: // Arrow Down
-					console.log(sel.selectedIndex);
-					sel.selectedIndex = (sel.size === 1) ? 0 : sel.selectedIndex + 1;
-					console.log(sel.selectedIndex);
+					updateFocus(1);
 					break;
 				case 38: // Arrow Up
-					sel.selectedIndex -= 1;
+					updateFocus(-1);
 					break;
-				case 8: // backspace
+				case 8: // Backspace
 					txt.bksp = true;
 					return;
 					break;
@@ -37,33 +35,45 @@ const Autocomplete = {
 					hideSel(true);
 					break;
 				default:
+					updateList();
 					return;
 			}
-			txt.value = sel.value || txt.startVal;
 			e.preventDefault();
 		}
 
-		function updateSel() {
-      txt.startVal = txt.value;
-			while (sel.lastChild) {
-				sel.lastChild.remove();
+		function updateFocus(num) {
+			ul.index = Math.min(Math.max(ul.index + num, -1), ul.children.length - 1);
+			if (ul.index === -1) {
+				txt.value = txt.startVal;
+				txt.focus();
+			} else {
+				txt.value = ul.children[ul.index].textContent;
+				ul.children[ul.index].focus();
+			}
+		}
+
+		function updateList() {
+			txt.startVal = txt.value;
+			while (ul.lastChild) {
+				ul.lastChild.remove();
 			}
 			if (txt.value.length < 2) return;
 			xhrReq('GET', `${api}?term=${txt.value}`)
 				.then((obj) => {
-					obj.data.forEach((item) => {
-						const opt = document.createElement('option');
-						opt.value = opt.textContent = item.name;
-						sel.appendChild(opt);
+					obj.data.forEach((item, i) => {
+						const li = document.createElement('li');
+						li.textContent = item.name;
+						li.setAttribute('tabindex', i + 1);
+						ul.appendChild(li);
 					});
-					sel.size = Math.min(5, obj.count);
+					ul.size = Math.min(5, obj.count);
 
-					if (sel.size === 1 && !txt.bksp) {
-						txt.value = sel.firstChild.value;
+					if (ul.size === 1 && !txt.bksp) {
+						txt.value = ul.firstChild.textContent;
 						hideSel(true);
 					} else {
-            delete txt.bksp;
-						sel.selectedIndex = -1;
+						delete txt.bksp;
+						ul.selectedIndex = -1;
 						hideSel(false);
 					}
 				}, (err) => console.log(err));
@@ -71,9 +81,9 @@ const Autocomplete = {
 
 		function hideSel(hide) {
 			if (hide) {
-				sel.setAttribute('hidden', true);
+				ul.setAttribute('hidden', true);
 			} else {
-				sel.removeAttribute('hidden');
+				ul.removeAttribute('hidden');
 			}
 		}
 
