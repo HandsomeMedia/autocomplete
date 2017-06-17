@@ -1,0 +1,36 @@
+@import "reset";
+
+body,
+html {
+	font: 20px/100% "Helvetica Neue", Helvetica, Arial, sans-serif;
+	text-align: center;
+}
+
+form {
+	position: relative;
+	display: inline-block;
+	min-width: 400px;
+	margin: 20px auto;
+}
+
+input,
+select {
+	width: 100%;
+	font: inherit;
+	border: 1px solid gray;
+	box-sizing: border-box;
+	outline: none;
+	padding: 4px;
+}
+
+input[type=text] {
+	position: absolute;
+	top: 0;
+	left: 0;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
+}
+
+select{
+    margin-top: 32px;
+}
