@@ -1,49 +1,50 @@
 @import "reset";
 
-*{
+* {
 	outline: none;
 }
 
-body,
-html {
+body {
 	font: 20px/100% "Helvetica Neue", Helvetica, Arial, sans-serif;
 	background: #f8f8f8;
 }
 
-form {
+fieldset {
 	width: 400px;
 	margin: 20px auto;
 }
 
-input[type=text],
+input,
 ul {
 	position: relative;
-	display: block;
 	font: inherit;
 	line-height: 24px;
-	padding: 4px;
 	background: white;
-	border: 1px solid gray;
+	border: 1px solid #bbbbbb;
 	border-radius: 5px;
 	box-shadow: 0 0 4px #999999;
 }
 
-input[type=text] {
+input {
 	width: 100%;
+	padding: 4px;
 	z-index: 1;
 }
 
-ul{
-    margin-top: -4px;
-		border-top-right-radius: 0;
-		border-top-left-radius: 0;
-    z-index: 0;
+ul {
+	max-height: calc(32px * 5);
+	margin-top: -2px;
+	border-top-right-radius: 0;
+	border-top-left-radius: 0;
+	overflow: hidden;
+	z-index: 0;
 }
 
-li{
-	padding: 2px;
+li {
+	padding: 4px;
+	cursor: default;
 }
 
-li:focus{
+li:focus {
 	background: skyblue;
 }
