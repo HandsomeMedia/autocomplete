@@ -56,47 +56,89 @@
 
 	var Autocomplete = {
 		init: function init(api) {
+			var field = document.createElement('fieldset');
 			var ul = document.createElement('ul');
 			var txt = document.createElement('input');
 			txt.type = 'text';
 			txt.autofocus = true;
 			txt.placeholder = 'Search states';
 			ul.index = -1;
-			ul.addEventListener('click', handleUi);
-			this.form = document.createElement('form');
-			this.form.addEventListener('keyup', handleUi);
-			this.form.appendChild(txt);
-			this.form.appendChild(ul);
+			ul.hidden = true;
+			field.addEventListener('keyup', handleKeyboard);
+			field.addEventListener('click', handlePointer);
+			field.appendChild(txt);
+			field.appendChild(ul);
 
-			function handleUi(e) {
+			function handleKeyboard(e) {
 				switch (e.keyCode) {
+					case 9: // Tab
 					case 40:
 						// Arrow Down
-						updateFocus(1);
+						focusList(1);
 						break;
 					case 38:
 						// Arrow Up
-						updateFocus(-1);
+						focusList(-1);
 						break;
-					case 8:
-						// Backspace
-						txt.bksp = true;
-						return;
-						break;
-					case 13: // Enter
-					case undefined:
-						// Pointer device
-						hideSel(true);
+					case 27:
+						// Escape
+						txt.value = txt.startVal;
+					case 13:
+						// Enter
+						hideList(true);
 						break;
 					default:
+						txt.focus();
 						updateList();
-						return;
 				}
-				e.preventDefault();
 			}
 
-			function updateFocus(num) {
-				ul.index = Math.min(Math.max(ul.index + num, -1), ul.children.length - 1);
+			function handlePointer(e) {
+				var target = e.target;
+				if (target.nodeName.toLowerCase() === 'li') {
+					txt.value = target.textContent;
+					hideList(true);
+				}
+			}
+
+			function updateList() {
+				if (txt.value === txt.startVal) {
+					return;
+				}
+				ul.index = -1;
+				txt.startVal = txt.value;
+				if (txt.value.length < 2) {
+					hideList(true);
+					return;
+				}
+
+				xhrReq('GET', api + '?term=' + txt.value).then(function (obj) {
+					if (obj.count) {
+						hideList(false);
+					} else {
+						hideList(true);
+						return;
+					}
+					obj.data.forEach(function (item, i) {
+						var li = ul.children[i] || document.createElement('li');
+						li.textContent = item.name;
+						if (!ul.contains(li)) {
+							li.setAttribute('tabindex', 0);
+							ul.appendChild(li);
+						}
+					});
+					while (ul.childElementCount > obj.count) {
+						ul.lastChild.remove();
+					}
+				}, function (err) {
+					return console.log(err);
+				});
+			};
+
+			function focusList(num) {
+				if (ul.hidden) return;
+
+				ul.index = Math.min(Math.max(ul.index + num, -1), ul.childElementCount - 1);
 				if (ul.index === -1) {
 					txt.value = txt.startVal;
 					txt.focus();
@@ -106,43 +148,20 @@
 				}
 			}
 
-			function updateList() {
-				txt.startVal = txt.value;
-				while (ul.lastChild) {
-					ul.lastChild.remove();
-				}
-				if (txt.value.length < 2) return;
-				xhrReq('GET', api + '?term=' + txt.value).then(function (obj) {
-					obj.data.forEach(function (item, i) {
-						var li = document.createElement('li');
-						li.textContent = item.name;
-						li.setAttribute('tabindex', i + 1);
-						ul.appendChild(li);
-					});
-					ul.size = Math.min(5, obj.count);
-
-					if (ul.size === 1 && !txt.bksp) {
-						txt.value = ul.firstChild.textContent;
-						hideSel(true);
-					} else {
-						delete txt.bksp;
-						ul.selectedIndex = -1;
-						hideSel(false);
-					}
-				}, function (err) {
-					return console.log(err);
-				});
-			};
-
-			function hideSel(hide) {
-				if (hide) {
-					ul.setAttribute('hidden', true);
+			function hideList(bool) {
+				if (bool) {
+					ul.hidden = true;
+					ul.index = -1;
+					txt.focus();
 				} else {
 					ul.removeAttribute('hidden');
 				}
 			}
 
-			return this;
+			return field;
+		},
+		clear: function clear() {
+			console.log(this);
 		}
 	};
 
@@ -165,8 +184,10 @@
 		});
 	}
 
-	var stateSel = Object.create(Autocomplete).init('http://localhost:3000/api/states');
-	document.getElementById('app').appendChild(stateSel.form);
+	var stateField = Object.create(Autocomplete);
+	document.getElementById('app').appendChild(stateField.init('http://localhost:3000/api/states'));
+	stateField.clear();
+	console.log(Autocomplete.isPrototypeOf(stateField));
 
 /***/ }),
 /* 1 */
@@ -203,7 +224,7 @@
 
 
 	// module
-	exports.push([module.id, "/* http://meyerweb.com/eric/tools/css/reset/\n   v2.0 | 20110126\n   License: none (public domain)\n*/\nhtml, body, div, span, applet, object, iframe,\nh1, h2, h3, h4, h5, h6, p, blockquote, pre,\na, abbr, acronym, address, big, cite, code,\ndel, dfn, em, img, ins, kbd, q, s, samp,\nsmall, strike, strong, sub, sup, tt, var,\nb, u, i, center,\ndl, dt, dd, ol, ul, li,\nfieldset, form, label, legend,\ntable, caption, tbody, tfoot, thead, tr, th, td,\narticle, aside, canvas, details, embed,\nfigure, figcaption, footer, header, hgroup,\nmenu, nav, output, ruby, section, summary,\ntime, mark, audio, video {\n  margin: 0;\n  padding: 0;\n  border: 0;\n  font-size: 100%;\n  font: inherit;\n  vertical-align: baseline; }\n\n/* HTML5 display-role reset for older browsers */\narticle, aside, details, figcaption, figure,\nfooter, header, hgroup, menu, nav, section {\n  display: block; }\n\nbody {\n  line-height: 1; }\n\nol, ul {\n  list-style: none; }\n\nblockquote, q {\n  quotes: none; }\n\nblockquote:before, blockquote:after,\nq:before, q:after {\n  content: '';\n  content: none; }\n\ntable {\n  border-collapse: collapse;\n  border-spacing: 0; }\n\n* {\n  outline: none; }\n\nbody,\nhtml {\n  font: 20px/100% \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  background: #f8f8f8; }\n\nform {\n  width: 400px;\n  margin: 20px auto; }\n\ninput[type=text],\nul {\n  position: relative;\n  display: block;\n  font: inherit;\n  line-height: 24px;\n  padding: 4px;\n  background: white;\n  border: 1px solid gray;\n  border-radius: 5px;\n  box-shadow: 0 0 4px #999999; }\n\ninput[type=text] {\n  width: 100%;\n  z-index: 1; }\n\nul {\n  margin-top: -4px;\n  border-top-right-radius: 0;\n  border-top-left-radius: 0;\n  z-index: 0; }\n\nli {\n  padding: 2px; }\n\nli:focus {\n  background: skyblue; }\n", ""]);
+	exports.push([module.id, "/* http://meyerweb.com/eric/tools/css/reset/\n   v2.0 | 20110126\n   License: none (public domain)\n*/\nhtml, body, div, span, applet, object, iframe,\nh1, h2, h3, h4, h5, h6, p, blockquote, pre,\na, abbr, acronym, address, big, cite, code,\ndel, dfn, em, img, ins, kbd, q, s, samp,\nsmall, strike, strong, sub, sup, tt, var,\nb, u, i, center,\ndl, dt, dd, ol, ul, li,\nfieldset, form, label, legend,\ntable, caption, tbody, tfoot, thead, tr, th, td,\narticle, aside, canvas, details, embed,\nfigure, figcaption, footer, header, hgroup,\nmenu, nav, output, ruby, section, summary,\ntime, mark, audio, video {\n  margin: 0;\n  padding: 0;\n  border: 0;\n  font-size: 100%;\n  font: inherit;\n  vertical-align: baseline; }\n\n/* HTML5 display-role reset for older browsers */\narticle, aside, details, figcaption, figure,\nfooter, header, hgroup, menu, nav, section {\n  display: block; }\n\nbody {\n  line-height: 1; }\n\nol, ul {\n  list-style: none; }\n\nblockquote, q {\n  quotes: none; }\n\nblockquote:before, blockquote:after,\nq:before, q:after {\n  content: '';\n  content: none; }\n\ntable {\n  border-collapse: collapse;\n  border-spacing: 0; }\n\n* {\n  outline: none; }\n\nbody {\n  font: 20px/100% \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  background: #f8f8f8; }\n\nfieldset {\n  width: 400px;\n  margin: 20px auto; }\n\ninput,\nul {\n  position: relative;\n  font: inherit;\n  line-height: 24px;\n  background: white;\n  border: 1px solid #bbbbbb;\n  border-radius: 5px;\n  box-shadow: 0 0 4px #999999; }\n\ninput {\n  width: 100%;\n  padding: 4px;\n  z-index: 1; }\n\nul {\n  max-height: calc(32px * 5);\n  margin-top: -2px;\n  border-top-right-radius: 0;\n  border-top-left-radius: 0;\n  overflow: hidden;\n  z-index: 0; }\n\nli {\n  padding: 4px;\n  cursor: default; }\n\nli:focus {\n  background: skyblue; }\n", ""]);
 
 	// exports
 
