@@ -55,113 +55,124 @@
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	var Autocomplete = {
-		init: function init(api) {
-			var field = document.createElement('fieldset');
-			var ul = document.createElement('ul');
-			var txt = document.createElement('input');
-			txt.type = 'text';
-			txt.autofocus = true;
-			txt.placeholder = 'Search states';
-			ul.index = -1;
-			ul.hidden = true;
-			field.addEventListener('keyup', handleKeyboard);
-			field.addEventListener('click', handlePointer);
-			field.appendChild(txt);
-			field.appendChild(ul);
+		fs: document.createElement('fieldset'),
+		input: document.createElement('input'),
+		init: function init(placeholder, api) {
+			var _this = this;
 
-			function handleKeyboard(e) {
+			var strDflt = this.input.value;
+			var ul = document.createElement('ul');
+
+			var onKey = function onKey(e) {
 				switch (e.keyCode) {
 					case 9: // Tab
 					case 40:
 						// Arrow Down
-						focusList(1);
+						focusItem(1);
 						break;
 					case 38:
 						// Arrow Up
-						focusList(-1);
+						focusItem(-1);
 						break;
 					case 27:
 						// Escape
-						txt.value = txt.startVal;
+						_this.input.value = strDflt;
 					case 13:
 						// Enter
 						hideList(true);
 						break;
 					default:
-						txt.focus();
-						updateList();
+						_this.input.focus();
+						getList();
 				}
-			}
+			};
 
-			function handlePointer(e) {
-				var target = e.target;
-				if (target.nodeName.toLowerCase() === 'li') {
-					txt.value = target.textContent;
+			var onClick = function onClick(e) {
+				if (e.target.nodeName.toLowerCase() === 'li') {
+					_this.input.value = e.target.textContent;
 					hideList(true);
 				}
-			}
+			};
 
-			function updateList() {
-				if (txt.value === txt.startVal) {
+			var getList = function getList() {
+				if (_this.input.value === strDflt) {
 					return;
+				} else {
+					strDflt = _this.input.value;
 				}
-				ul.index = -1;
-				txt.startVal = txt.value;
-				if (txt.value.length < 2) {
+
+				if (_this.input.value.length < 2) {
 					hideList(true);
 					return;
 				}
 
-				xhrReq('GET', api + '?term=' + txt.value).then(function (obj) {
+				var render = function render(obj) {
 					if (obj.count) {
 						hideList(false);
 					} else {
 						hideList(true);
 						return;
 					}
-					obj.data.forEach(function (item, i) {
-						var li = ul.children[i] || document.createElement('li');
-						li.textContent = item.name;
-						if (!ul.contains(li)) {
-							li.setAttribute('tabindex', 0);
-							ul.appendChild(li);
-						}
-					});
-					while (ul.childElementCount > obj.count) {
+
+					while (ul.lastChild) {
 						ul.lastChild.remove();
 					}
+					ul.index = -1;
+					obj.data.forEach(function (item) {
+						var li = document.createElement('li');
+						li.textContent = item.name;
+						li.setAttribute('tabindex', 0);
+						ul.appendChild(li);
+					});
+				};
+
+				xhrReq('GET', api + '?term=' + _this.input.value).then(function (obj) {
+					return render(obj);
 				}, function (err) {
 					return console.log(err);
 				});
 			};
 
-			function focusList(num) {
+			var hideList = function hideList(bool) {
+				if (bool) {
+					ul.hidden = true;
+					ul.index = -1;
+					_this.input.focus();
+				} else {
+					ul.removeAttribute('hidden');
+				}
+			};
+
+			var focusItem = function focusItem(num) {
 				if (ul.hidden) return;
 
 				ul.index = Math.min(Math.max(ul.index + num, -1), ul.childElementCount - 1);
 				if (ul.index === -1) {
-					txt.value = txt.startVal;
-					txt.focus();
+					_this.input.value = strDflt;
+					_this.input.focus();
 				} else {
-					txt.value = ul.children[ul.index].textContent;
+					_this.input.value = ul.children[ul.index].textContent;
 					ul.children[ul.index].focus();
 				}
-			}
+			};
 
-			function hideList(bool) {
-				if (bool) {
-					ul.hidden = true;
-					ul.index = -1;
-					txt.focus();
-				} else {
-					ul.removeAttribute('hidden');
-				}
-			}
+			ul.index = -1;
+			ul.hidden = true;
+			this.input.type = 'text';
+			this.input.autofocus = true;
+			this.input.placeholder = placeholder;
+			this.fs.addEventListener('keyup', onKey);
+			this.fs.addEventListener('click', onClick);
+			this.fs.appendChild(this.input);
+			this.fs.appendChild(ul);
 
-			return field;
+			return this;
 		},
 		clear: function clear() {
-			console.log(this);
+			this.input.value = '';
+		},
+		getVal: function getVal() {
+			return this.input.value;
 		}
 	};
 
@@ -184,10 +195,8 @@
 		});
 	}
 
-	var stateField = Object.create(Autocomplete);
-	document.getElementById('app').appendChild(stateField.init('http://localhost:3000/api/states'));
-	stateField.clear();
-	console.log(Autocomplete.isPrototypeOf(stateField));
+	var stateFs = Object.create(Autocomplete).init('Search states', 'http://localhost:3000/api/states');
+	document.getElementById('app').appendChild(stateFs.fs);
 
 /***/ }),
 /* 1 */
