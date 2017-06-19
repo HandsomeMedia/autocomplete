@@ -4,109 +4,117 @@
 
 import appStyles from '../sass/app.scss';
 
-const Autocomplete = {
-	init(api) {
-		const field = document.createElement('fieldset');
+const autocomplete = {
+	fs: document.createElement('fieldset'),
+	input: document.createElement('input'),
+	init(placeholder, api) {
+		let strDflt = this.input.value;
 		const ul = document.createElement('ul');
-		const txt = document.createElement('input');
-		txt.type = 'text';
-		txt.autofocus = true;
-		txt.placeholder = 'Search states';
-		ul.index = -1;
-		ul.hidden = true;
-		field.addEventListener('keyup', handleKeyboard);
-		field.addEventListener('click', handlePointer);
-		field.appendChild(txt);
-		field.appendChild(ul);
 
-		function handleKeyboard(e) {
+		const onKey = (e) => {
 			switch (e.keyCode) {
 				case 9: // Tab
 				case 40: // Arrow Down
-					focusList(1);
+					focusItem(1);
 					break;
 				case 38: // Arrow Up
-					focusList(-1);
+					focusItem(-1);
 					break;
 				case 27: // Escape
-					txt.value = txt.startVal;
+					this.input.value = strDflt;
 				case 13: // Enter
 					hideList(true);
 					break;
 				default:
-					txt.focus();
-					updateList();
+					this.input.focus();
+					getList();
 			}
-		}
-
-		function handlePointer(e) {
-			const target = e.target;
-			if (target.nodeName.toLowerCase() === 'li') {
-				txt.value = target.textContent;
-				hideList(true);
-			}
-		}
-
-		function updateList() {
-			if (txt.value === txt.startVal) {
-				return;
-			}
-			ul.index = -1;
-			txt.startVal = txt.value;
-			if (txt.value.length < 2) {
-				hideList(true);
-				return;
-			}
-
-			xhrReq('GET', `${api}?term=${txt.value}`)
-				.then((obj) => {
-					if (obj.count) {
-						hideList(false);
-					} else {
-						hideList(true);
-						return;
-					}
-					obj.data.forEach((item, i) => {
-						const li = ul.children[i] || document.createElement('li');
-						li.textContent = item.name;
-						if (!ul.contains(li)) {
-							li.setAttribute('tabindex', 0);
-							ul.appendChild(li);
-						}
-					});
-					while (ul.childElementCount > obj.count) {
-						ul.lastChild.remove();
-					}
-				}, (err) => console.log(err));
 		};
 
-		function focusList(num) {
+		const onClick = (e) => {
+			if (e.target.nodeName.toLowerCase() === 'li') {
+				this.input.value = e.target.textContent;
+				hideList(true);
+			}
+		};
+
+		const getList = () => {
+			if (this.input.value === strDflt) {
+				return;
+			} else {
+				strDflt = this.input.value;
+			}
+
+			if (this.input.value.length < 2) {
+				hideList(true);
+				return;
+			}
+
+			const render = (obj) => {
+				if (obj.count) {
+					hideList(false);
+				} else {
+					hideList(true);
+					return;
+				}
+
+				while (ul.lastChild) {
+					ul.lastChild.remove();
+				}
+				ul.index = -1;
+				obj.data.forEach((item) => {
+					const li = document.createElement('li');
+					li.textContent = item.name;
+					li.setAttribute('tabindex', 0);
+					ul.appendChild(li);
+				});
+			};
+
+			xhrReq('GET', `${api}?term=${this.input.value}`).then(
+				(obj) => render(obj), (err) => console.log(err)
+			);
+		};
+
+		const hideList = (bool) => {
+			if (bool) {
+				ul.hidden = true;
+				ul.index = -1;
+				this.input.focus();
+			} else {
+				ul.removeAttribute('hidden');
+			}
+		};
+
+		const focusItem = (num) => {
 			if (ul.hidden) return;
 
 			ul.index = Math.min(Math.max(ul.index + num, -1), ul.childElementCount - 1);
 			if (ul.index === -1) {
-				txt.value = txt.startVal;
-				txt.focus();
+				this.input.value = strDflt;
+				this.input.focus();
 			} else {
-				txt.value = ul.children[ul.index].textContent;
+				this.input.value = ul.children[ul.index].textContent;
 				ul.children[ul.index].focus();
 			}
-		}
+		};
 
-		function hideList(bool) {
-			if (bool) {
-				ul.hidden = true;
-				ul.index = -1;
-				txt.focus();
-			} else {
-				ul.removeAttribute('hidden');
-			}
-		}
+		ul.index = -1;
+		ul.hidden = true;
+		this.input.type = 'text';
+		this.input.autofocus = true;
+		this.input.placeholder = placeholder;
+		this.fs.addEventListener('keyup', onKey);
+		this.fs.addEventListener('click', onClick);
+		this.fs.appendChild(this.input);
+		this.fs.appendChild(ul);
 
-		return field;
+		return this;
 	},
 	clear() {
-		console.log(this);
+		this.input.value = '';
+	},
+	getVal() {
+		return this.input.value;
 	},
 };
 
@@ -129,7 +137,5 @@ function xhrReq(method, url) {
 	}));
 }
 
-const stateField = Object.create(Autocomplete);
-document.getElementById('app').appendChild(stateField.init('http://localhost:3000/api/states'));
-stateField.clear();
-console.log(Autocomplete.isPrototypeOf(stateField));
+const stateFs = Object.create(autocomplete).init('Search states', 'http://localhost:3000/api/states');
+document.getElementById('app').appendChild(stateFs.fs);
