@@ -3,79 +3,92 @@
 'use strict';
 
 import appStyles from '../sass/app.scss';
+import xhrReq from './xhr.js';
 
 const autocomplete = {
 	fs: document.createElement('fieldset'),
 	input: document.createElement('input'),
 	init(placeholder, api) {
-		let strDflt = this.input.value;
+		let userStr; // hold ref to original user string
 		const ul = document.createElement('ul');
+		const resetBtn = document.createElement('button');
 
 		const onKey = (e) => {
 			switch (e.keyCode) {
-				case 9: // Tab
 				case 40: // Arrow Down
-					focusItem(1);
+					selectItem(1);
 					break;
 				case 38: // Arrow Up
-					focusItem(-1);
+					e.preventDefault(); // stop cursor from moving to line-start
+					selectItem(-1);
 					break;
 				case 27: // Escape
-					this.input.value = strDflt;
+					this.input.value = userStr;
 				case 13: // Enter
-					hideList(true);
+					this.hideList(true);
 					break;
-				default:
-					this.input.focus();
-					getList();
 			}
 		};
 
-		const onClick = (e) => {
-			if (e.target.nodeName.toLowerCase() === 'li') {
-				this.input.value = e.target.textContent;
-				hideList(true);
-			}
-		};
-
-		const getList = () => {
-			if (this.input.value === strDflt) {
-				return;
-			} else {
-				strDflt = this.input.value;
-			}
+		const onInput = (e) => {
+			userStr = this.input.value;
 
 			if (this.input.value.length < 2) {
-				hideList(true);
+				this.hideList(true);
 				return;
 			}
 
 			const render = (obj) => {
-				if (obj.count) {
-					hideList(false);
-				} else {
-					hideList(true);
-					return;
-				}
-
+				ul.index = -1;
 				while (ul.lastChild) {
 					ul.lastChild.remove();
 				}
-				ul.index = -1;
+
+				if (obj.count) {
+					this.hideList(false);
+				} else {
+					this.hideList(true); // no items were returned
+					return;
+				}
+
 				obj.data.forEach((item) => {
 					const li = document.createElement('li');
 					li.textContent = item.name;
-					li.setAttribute('tabindex', 0);
 					ul.appendChild(li);
 				});
 			};
 
 			xhrReq('GET', `${api}?term=${this.input.value}`).then(
-				(obj) => render(obj), (err) => console.log(err)
-			);
+				(obj) => render(obj), (err) => console.log(err));
 		};
 
-		const hideList = (bool) => {
+		const onClick = (e) => {
+			switch (e.target.nodeName.toLowerCase()) {
+				case 'li':
+					this.input.value = e.target.textContent;
+					this.hideList(true);
+					break;
+				case 'button':
+					this.reset();
+					break;
+			}
+		};
+
+		const selectItem = (num) => {
+			if (ul.hidden) return;
+			if (ul.selected) ul.selected.removeAttribute('class'); // remove prev selection
+			ul.index = Math.min(Math.max(ul.index + num, -1), ul.childElementCount - 1); // set index between -1 and total items
+			if (ul.index === -1) {
+				this.input.value = userStr;
+			} else {
+				ul.selected = ul.children[ul.index];
+				ul.selected.className = 'active';
+				ul.selected.scrollIntoView(false);
+				this.input.value = ul.selected.textContent;
+			}
+		};
+
+		this.hideList = (bool) => {
 			if (bool) {
 				ul.hidden = true;
 				ul.index = -1;
@@ -85,57 +98,29 @@ const autocomplete = {
 			}
 		};
 
-		const focusItem = (num) => {
-			if (ul.hidden) return;
-
-			ul.index = Math.min(Math.max(ul.index + num, -1), ul.childElementCount - 1);
-			if (ul.index === -1) {
-				this.input.value = strDflt;
-				this.input.focus();
-			} else {
-				this.input.value = ul.children[ul.index].textContent;
-				ul.children[ul.index].focus();
-			}
-		};
-
-		ul.index = -1;
 		ul.hidden = true;
+		resetBtn.className = 'reset';
+		resetBtn.textContent = '×';
 		this.input.type = 'text';
 		this.input.autofocus = true;
 		this.input.placeholder = placeholder;
-		this.fs.addEventListener('keyup', onKey);
+		this.fs.className = 'auto';
+		this.fs.addEventListener('keydown', onKey); // use KeyboardEvent to capture specific keys
+		this.fs.addEventListener('input', onInput); // use input Event to capture synchronous content change
 		this.fs.addEventListener('click', onClick);
 		this.fs.appendChild(this.input);
 		this.fs.appendChild(ul);
-
+		this.fs.appendChild(resetBtn);
 		return this;
-	},
-	clear() {
-		this.input.value = '';
 	},
 	getVal() {
 		return this.input.value;
 	},
+	reset() {
+		this.input.value = '';
+		this.hideList(true);
+	},
 };
 
-function xhrReq(method, url) {
-	return new Promise(((resolve, reject) => {
-		const xhr = new XMLHttpRequest();
-		xhr.open(method, url);
-		xhr.responseType = 'json';
-		xhr.onload = function() {
-			if (xhr.status === 200) {
-				resolve(xhr.response);
-			} else {
-				reject(`Oh Snap! ${xhr.statusText}`);
-			}
-		};
-		xhr.onerror = function() {
-			reject('There was a network error.');
-		};
-		xhr.send();
-	}));
-}
-
-const stateFs = Object.create(autocomplete).init('Search states', 'http://localhost:3000/api/states');
-document.getElementById('app').appendChild(stateFs.fs);
+const autoState = Object.create(autocomplete).init('Search states', 'http://localhost:3000/api/states');
+document.getElementById('app').appendChild(autoState.fs);

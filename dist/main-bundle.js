@@ -52,88 +52,105 @@
 
 	var _app2 = _interopRequireDefault(_app);
 
+	var _xhr = __webpack_require__(6);
+
+	var _xhr2 = _interopRequireDefault(_xhr);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	var Autocomplete = {
+	var autocomplete = {
 		fs: document.createElement('fieldset'),
 		input: document.createElement('input'),
 		init: function init(placeholder, api) {
 			var _this = this;
 
-			var strDflt = this.input.value;
+			var userStr = void 0; // hold ref to original user string
 			var ul = document.createElement('ul');
+			var resetBtn = document.createElement('button');
 
 			var onKey = function onKey(e) {
 				switch (e.keyCode) {
-					case 9: // Tab
 					case 40:
 						// Arrow Down
-						focusItem(1);
+						selectItem(1);
 						break;
 					case 38:
 						// Arrow Up
-						focusItem(-1);
+						e.preventDefault(); // stop cursor from moving to line-start
+						selectItem(-1);
 						break;
 					case 27:
 						// Escape
-						_this.input.value = strDflt;
+						_this.input.value = userStr;
 					case 13:
 						// Enter
-						hideList(true);
+						_this.hideList(true);
 						break;
-					default:
-						_this.input.focus();
-						getList();
 				}
 			};
 
-			var onClick = function onClick(e) {
-				if (e.target.nodeName.toLowerCase() === 'li') {
-					_this.input.value = e.target.textContent;
-					hideList(true);
-				}
-			};
-
-			var getList = function getList() {
-				if (_this.input.value === strDflt) {
-					return;
-				} else {
-					strDflt = _this.input.value;
-				}
+			var onInput = function onInput(e) {
+				userStr = _this.input.value;
 
 				if (_this.input.value.length < 2) {
-					hideList(true);
+					_this.hideList(true);
 					return;
 				}
 
 				var render = function render(obj) {
-					if (obj.count) {
-						hideList(false);
-					} else {
-						hideList(true);
-						return;
-					}
-
+					ul.index = -1;
 					while (ul.lastChild) {
 						ul.lastChild.remove();
 					}
-					ul.index = -1;
+
+					if (obj.count) {
+						_this.hideList(false);
+					} else {
+						_this.hideList(true); // no items were returned
+						return;
+					}
+
 					obj.data.forEach(function (item) {
 						var li = document.createElement('li');
 						li.textContent = item.name;
-						li.setAttribute('tabindex', 0);
 						ul.appendChild(li);
 					});
 				};
 
-				xhrReq('GET', api + '?term=' + _this.input.value).then(function (obj) {
+				(0, _xhr2.default)('GET', api + '?term=' + _this.input.value).then(function (obj) {
 					return render(obj);
 				}, function (err) {
 					return console.log(err);
 				});
 			};
 
-			var hideList = function hideList(bool) {
+			var onClick = function onClick(e) {
+				switch (e.target.nodeName.toLowerCase()) {
+					case 'li':
+						_this.input.value = e.target.textContent;
+						_this.hideList(true);
+						break;
+					case 'button':
+						_this.reset();
+						break;
+				}
+			};
+
+			var selectItem = function selectItem(num) {
+				if (ul.hidden) return;
+				if (ul.selected) ul.selected.removeAttribute('class'); // remove prev selection
+				ul.index = Math.min(Math.max(ul.index + num, -1), ul.childElementCount - 1); // set index between -1 and total items
+				if (ul.index === -1) {
+					_this.input.value = userStr;
+				} else {
+					ul.selected = ul.children[ul.index];
+					ul.selected.className = 'active';
+					ul.selected.scrollIntoView(false);
+					_this.input.value = ul.selected.textContent;
+				}
+			};
+
+			this.hideList = function (bool) {
 				if (bool) {
 					ul.hidden = true;
 					ul.index = -1;
@@ -143,60 +160,32 @@
 				}
 			};
 
-			var focusItem = function focusItem(num) {
-				if (ul.hidden) return;
-
-				ul.index = Math.min(Math.max(ul.index + num, -1), ul.childElementCount - 1);
-				if (ul.index === -1) {
-					_this.input.value = strDflt;
-					_this.input.focus();
-				} else {
-					_this.input.value = ul.children[ul.index].textContent;
-					ul.children[ul.index].focus();
-				}
-			};
-
-			ul.index = -1;
 			ul.hidden = true;
+			resetBtn.className = 'reset';
+			resetBtn.textContent = '×';
 			this.input.type = 'text';
 			this.input.autofocus = true;
 			this.input.placeholder = placeholder;
-			this.fs.addEventListener('keyup', onKey);
+			this.fs.className = 'auto';
+			this.fs.addEventListener('keydown', onKey); // use KeyboardEvent to capture specific keys
+			this.fs.addEventListener('input', onInput); // use input Event to capture synchronous content change
 			this.fs.addEventListener('click', onClick);
 			this.fs.appendChild(this.input);
 			this.fs.appendChild(ul);
-
+			this.fs.appendChild(resetBtn);
 			return this;
-		},
-		clear: function clear() {
-			this.input.value = '';
 		},
 		getVal: function getVal() {
 			return this.input.value;
+		},
+		reset: function reset() {
+			this.input.value = '';
+			this.hideList(true);
 		}
 	};
 
-	function xhrReq(method, url) {
-		return new Promise(function (resolve, reject) {
-			var xhr = new XMLHttpRequest();
-			xhr.open(method, url);
-			xhr.responseType = 'json';
-			xhr.onload = function () {
-				if (xhr.status === 200) {
-					resolve(xhr.response);
-				} else {
-					reject('Oh Snap! ' + xhr.statusText);
-				}
-			};
-			xhr.onerror = function () {
-				reject('There was a network error.');
-			};
-			xhr.send();
-		});
-	}
-
-	var stateFs = Object.create(Autocomplete).init('Search states', 'http://localhost:3000/api/states');
-	document.getElementById('app').appendChild(stateFs.fs);
+	var autoState = Object.create(autocomplete).init('Search states', 'http://localhost:3000/api/states');
+	document.getElementById('app').appendChild(autoState.fs);
 
 /***/ }),
 /* 1 */
@@ -233,7 +222,7 @@
 
 
 	// module
-	exports.push([module.id, "/* http://meyerweb.com/eric/tools/css/reset/\n   v2.0 | 20110126\n   License: none (public domain)\n*/\nhtml, body, div, span, applet, object, iframe,\nh1, h2, h3, h4, h5, h6, p, blockquote, pre,\na, abbr, acronym, address, big, cite, code,\ndel, dfn, em, img, ins, kbd, q, s, samp,\nsmall, strike, strong, sub, sup, tt, var,\nb, u, i, center,\ndl, dt, dd, ol, ul, li,\nfieldset, form, label, legend,\ntable, caption, tbody, tfoot, thead, tr, th, td,\narticle, aside, canvas, details, embed,\nfigure, figcaption, footer, header, hgroup,\nmenu, nav, output, ruby, section, summary,\ntime, mark, audio, video {\n  margin: 0;\n  padding: 0;\n  border: 0;\n  font-size: 100%;\n  font: inherit;\n  vertical-align: baseline; }\n\n/* HTML5 display-role reset for older browsers */\narticle, aside, details, figcaption, figure,\nfooter, header, hgroup, menu, nav, section {\n  display: block; }\n\nbody {\n  line-height: 1; }\n\nol, ul {\n  list-style: none; }\n\nblockquote, q {\n  quotes: none; }\n\nblockquote:before, blockquote:after,\nq:before, q:after {\n  content: '';\n  content: none; }\n\ntable {\n  border-collapse: collapse;\n  border-spacing: 0; }\n\n* {\n  outline: none; }\n\nbody {\n  font: 20px/100% \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  background: #f8f8f8; }\n\nfieldset {\n  width: 400px;\n  margin: 20px auto; }\n\ninput,\nul {\n  position: relative;\n  font: inherit;\n  line-height: 24px;\n  background: white;\n  border: 1px solid #bbbbbb;\n  border-radius: 5px;\n  box-shadow: 0 0 4px #999999; }\n\ninput {\n  width: 100%;\n  padding: 4px;\n  z-index: 1; }\n\nul {\n  max-height: calc(32px * 5);\n  margin-top: -2px;\n  border-top-right-radius: 0;\n  border-top-left-radius: 0;\n  overflow: hidden;\n  z-index: 0; }\n\nli {\n  padding: 4px;\n  cursor: default; }\n\nli:focus {\n  background: skyblue; }\n", ""]);
+	exports.push([module.id, "/* http://meyerweb.com/eric/tools/css/reset/\n   v2.0 | 20110126\n   License: none (public domain)\n*/\nhtml, body, div, span, applet, object, iframe,\nh1, h2, h3, h4, h5, h6, p, blockquote, pre,\na, abbr, acronym, address, big, cite, code,\ndel, dfn, em, img, ins, kbd, q, s, samp,\nsmall, strike, strong, sub, sup, tt, var,\nb, u, i, center,\ndl, dt, dd, ol, ul, li,\nfieldset, form, label, legend,\ntable, caption, tbody, tfoot, thead, tr, th, td,\narticle, aside, canvas, details, embed,\nfigure, figcaption, footer, header, hgroup,\nmenu, nav, output, ruby, section, summary,\ntime, mark, audio, video {\n  margin: 0;\n  padding: 0;\n  border: 0;\n  font-size: 100%;\n  font: inherit;\n  vertical-align: baseline; }\n\n/* HTML5 display-role reset for older browsers */\narticle, aside, details, figcaption, figure,\nfooter, header, hgroup, menu, nav, section {\n  display: block; }\n\nbody {\n  line-height: 1; }\n\nol, ul {\n  list-style: none; }\n\nblockquote, q {\n  quotes: none; }\n\nblockquote:before, blockquote:after,\nq:before, q:after {\n  content: '';\n  content: none; }\n\ntable {\n  border-collapse: collapse;\n  border-spacing: 0; }\n\n:root {\n  --border1: 1px solid #bbbbbb; }\n\nbody {\n  background: #f8f8f8; }\n\nfieldset.auto {\n  position: relative;\n  width: 400px;\n  height: 34px;\n  margin: 20px auto;\n  font: 20px/24px sans-serif; }\n\nfieldset.auto * {\n  padding: 0;\n  font: inherit;\n  outline: none; }\n\nfieldset.auto > button.reset {\n  position: absolute;\n  top: 0;\n  right: 0;\n  margin: 4px;\n  width: 26px;\n  border: var(--border1);\n  border-radius: 50%; }\n\nfieldset.auto > input,\nfieldset.auto > ul {\n  background: white;\n  border: var(--border1);\n  border-radius: 5px;\n  box-shadow: 0 0 6px -1px #999999; }\n\nfieldset.auto > input {\n  width: 100%;\n  height: 100%;\n  padding: 4px 32px 4px 4px; }\n\nfieldset.auto > input::-ms-clear {\n  display: none; }\n\nfieldset.auto > ul {\n  max-height: calc(32px * 5);\n  margin-top: -2px;\n  border-top-right-radius: 0;\n  border-top-left-radius: 0;\n  overflow: hidden; }\n\nfieldset.auto li {\n  padding: 4px;\n  cursor: default; }\n\nfieldset.auto li:hover {\n  background: #dddddd; }\n\nfieldset.auto li:active, fieldset.auto li.active {\n  background: skyblue; }\n", ""]);
 
 	// exports
 
@@ -544,6 +533,37 @@
 			URL.revokeObjectURL(oldSrc);
 	}
 
+
+/***/ }),
+/* 5 */,
+/* 6 */
+/***/ (function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
+	/* eslint "require-jsdoc": 0*/
+	exports.default = function (method, url) {
+		return new Promise(function (resolve, reject) {
+			var xhr = new XMLHttpRequest();
+			xhr.open(method, url);
+			xhr.responseType = 'json';
+			xhr.onload = function () {
+				if (xhr.status === 200) {
+					resolve(xhr.response);
+				} else {
+					reject('Oh Snap! ' + xhr.statusText);
+				}
+			};
+			xhr.onerror = function () {
+				reject('Oh Snap! There was an error.');
+			};
+			xhr.send();
+		});
+	};
 
 /***/ })
 /******/ ]);

@@ -8,19 +8,19 @@ const router = express.Router();
 router.get('/', (req, res) => {
 	if (typeof req.query.term === 'undefined') {
 		res.status(500).send({
-			error: 'You must provide a search term'
+			error: 'You must provide a search term',
 		});
 	}
 
 	let filtered = [],
 		count = 0;
 
-	if(req.query.term === ''){
+	if (req.query.term === '') {
 		res.send({
 			count,
-			data: filtered
+			data: filtered,
 		});
-	}else{
+	} else {
 		filtered = states.filter((value) => {
 			const name = value.name.toLowerCase();
 			const query = req.query.term.toLowerCase();
@@ -30,14 +30,14 @@ router.get('/', (req, res) => {
 
 		let message;
 
-		if(filtered.length === 0){
+		if (filtered.length === 0) {
 			message = 'No results found.';
 		}
 
 		res.send({
 			count: filtered.length,
 			data: filtered,
-			message
+			message,
 		});
 	}
 });
