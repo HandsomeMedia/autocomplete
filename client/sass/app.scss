@@ -1,50 +1,72 @@
 @import "reset";
 
-* {
-	outline: none;
+:root {
+	--border1: 1px solid #bbbbbb;
 }
 
 body {
-	font: 20px/100% "Helvetica Neue", Helvetica, Arial, sans-serif;
 	background: #f8f8f8;
 }
 
-fieldset {
-	width: 400px;
-	margin: 20px auto;
-}
-
-input,
-ul {
+fieldset.auto {
 	position: relative;
+	width: 400px;
+	height: 34px;
+	margin: 20px auto;
+	font: 20px/24px sans-serif;
+}
+
+fieldset.auto * {
+	padding: 0;
 	font: inherit;
-	line-height: 24px;
+	outline: none;
+}
+
+fieldset.auto > button.reset {
+	position: absolute;
+	top: 0;
+	right: 0;
+	margin: 4px;
+	width: 26px;
+	border: var(--border1);
+	border-radius: 50%;
+}
+
+fieldset.auto > input,
+fieldset.auto > ul {
 	background: white;
-	border: 1px solid #bbbbbb;
+	border: var(--border1);
 	border-radius: 5px;
-	box-shadow: 0 0 4px #999999;
+	box-shadow: 0 0 6px -1px #999999;
 }
 
-input {
+fieldset.auto > input {
 	width: 100%;
-	padding: 4px;
-	z-index: 1;
+	height: 100%;
+	padding: 4px 32px 4px 4px;
 }
 
-ul {
+fieldset.auto > input::-ms-clear {
+	display: none;
+}
+
+fieldset.auto > ul {
 	max-height: calc(32px * 5);
 	margin-top: -2px;
 	border-top-right-radius: 0;
 	border-top-left-radius: 0;
 	overflow: hidden;
-	z-index: 0;
 }
 
-li {
+fieldset.auto li {
 	padding: 4px;
 	cursor: default;
 }
 
-li:focus {
+fieldset.auto li:hover {
+	background: #dddddd;
+}
+
+fieldset.auto li:active, fieldset.auto li.active {
 	background: skyblue;
 }
