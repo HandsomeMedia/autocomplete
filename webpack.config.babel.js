@@ -4,10 +4,10 @@ import webpack from 'webpack';
 import WebpackShellPlugin from 'webpack-shell-plugin';
 
 export default {
-	entry:  './client/js/App.js',
+	entry: './client/js/App.js',
 	output: {
 		path: './dist',
-		filename: '[name]-bundle.js'
+		filename: '[name]-bundle.js',
 	},
 	watch: true,
 	module: {
@@ -15,25 +15,25 @@ export default {
 			{
 				loader: 'babel-loader',
 				exclude: '/node_modules/',
-				test: /\.js?$/
+				test: /\.js?$/,
 			},
 			{
 				test: /\.scss$/,
 				exclude: '/node_modules/',
-				loaders: ['style', 'css', 'sass']
-			}
-		]
+				loaders: ['style', 'css', 'sass'],
+			},
+		],
 	},
 	plugins: [
 		new WebpackShellPlugin({
 			onBuildStart: ['echo "Starting"'],
-			onBuildEnd: ['node -r babel-register ./server/server.js']
-		})
+			onBuildEnd: ['node -r babel-register ./server/server.js'],
+		}),
 	],
 	node: {
-		fs: 'empty'
+		fs: 'empty',
 	},
 	resolve: {
-		extensions: ['', '.js', '.scss']
-	}
-}
+		extensions: ['', '.js', '.scss'],
+	},
+};

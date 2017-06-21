@@ -1,7 +1,7 @@
 {
-	"name": "verndale-code-test",
-	"version": "2.0.0",
-	"description": "Verndale Code Test - Vanilla JS",
+	"name": "autocomplete component",
+	"version": "3.0.0",
+	"description": "",
 	"private": true,
 	"dependencies": {
 		"babel-eslint": "^7.2.3",

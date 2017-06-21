@@ -52,7 +52,7 @@
 
 	var _app2 = _interopRequireDefault(_app);
 
-	var _xhr = __webpack_require__(6);
+	var _xhr = __webpack_require__(5);
 
 	var _xhr2 = _interopRequireDefault(_xhr);
 
@@ -535,8 +535,7 @@
 
 
 /***/ }),
-/* 5 */,
-/* 6 */
+/* 5 */
 /***/ (function(module, exports) {
 
 	'use strict';
